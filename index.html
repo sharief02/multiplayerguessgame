@@ -3,353 +3,548 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Multiplayer Color Guessing Game</title>
+  <title>Retro Extreme Color Game</title>
+  <!-- Import retro font -->
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet">
   <style>
-    /* Basic styling for join and game screens */
+    /* New Background Animation: Rotating, pulsing gradient */
+    @keyframes rotateBackground {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #1e3c72, #2a5298);
-      color: #fff;
       margin: 0;
       padding: 0;
+      font-family: 'Bungee', cursive;
+      color: #fff;
+      background: linear-gradient(135deg, #0d0d0d, #3c3c3c, #0d0d0d);
+      background-size: 200% 200%;
+      animation: rotateBackground 40s ease infinite;
       display: flex;
-      height: 100vh;
       align-items: center;
       justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
     }
-    #join-screen, #game-screen {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 20px;
+    /* Main container with glass effect */
+    #game-container {
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      border: 2px solid rgba(255, 255, 255, 0.2);
       border-radius: 15px;
-      text-align: center;
+      padding: 30px;
       width: 90%;
       max-width: 600px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
     }
-    input[type="text"] {
+    h1 {
+      margin-bottom: 20px;
+      font-size: 2em;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    /* Form Elements */
+    .input-field {
       width: 80%;
-      padding: 10px;
+      padding: 12px;
       margin: 10px 0;
       border: none;
       border-radius: 5px;
+      font-size: 1em;
     }
     button {
-      padding: 10px 20px;
-      background: #ff6f61;
+      padding: 12px 25px;
+      margin-top: 15px;
+      background: linear-gradient(135deg, #ff416c, #ff4b2b);
       border: none;
-      border-radius: 5px;
-      cursor: pointer;
+      border-radius: 50px;
       color: #fff;
+      font-size: 1em;
       font-weight: bold;
-      transition: background 0.3s ease;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     button:hover {
-      background: #ff4c3b;
+      transform: scale(1.05);
+      box-shadow: 0 0 10px #ff416c;
+    }
+    /* Status Displays */
+    .status {
+      margin-top: 10px;
+      font-size: 1.1em;
     }
     #scoreboard {
       display: flex;
       justify-content: space-around;
-      margin-bottom: 15px;
-      font-size: 1.2em;
+      margin: 15px 0;
+      font-size: 1.3em;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
     }
-    .colors {
+    /* Color Buttons: Glossy finish, no text */
+    .color-buttons {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 10px;
-      margin: 15px 0;
+      gap: 12px;
+      margin-top: 15px;
     }
     .color-btn {
-      width: 80px;
-      height: 80px;
-      border: none;
+      width: 70px;
+      height: 70px;
+      border: 3px solid rgba(255,255,255,0.5);
       border-radius: 50%;
       cursor: pointer;
-      font-weight: bold;
-      color: #333;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      transition: transform 0.2s ease;
+      transition: transform 0.2s, box-shadow 0.2s;
+      /* Glossy overlay */
+      background-image: linear-gradient(45deg, rgba(255,255,255,0.3), rgba(0,0,0,0));
     }
     .color-btn:hover {
       transform: scale(1.1);
+      box-shadow: 0 0 10px rgba(255,255,255,0.8);
     }
-    #timer {
-      margin: 10px 0;
+    /* Timer and Attempts Display */
+    #timer, #attempts {
+      margin-top: 10px;
       font-size: 1.2em;
     }
-    #celebration {
-      font-size: 2em;
-      margin: 20px 0;
-      display: none;
+    /* Win Animation: Congratulations pop-in */
+    #congrats {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      font-size: 3em;
+      color: #00ff00;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+      z-index: 1000;
+      opacity: 0;
+    }
+    @keyframes congratsPop {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+    /* Failure Animation: Shake "FAIL!" text */
+    #fail {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 3em;
+      color: #ff3333;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+      z-index: 1000;
+      opacity: 0;
+    }
+    @keyframes shakeFail {
+      0% { transform: translate(-50%, -50%) translateX(0); opacity: 1; }
+      25% { transform: translate(-50%, -50%) translateX(-10px); }
+      50% { transform: translate(-50%, -50%) translateX(10px); }
+      75% { transform: translate(-50%, -50%) translateX(-10px); }
+      100% { transform: translate(-50%, -50%) translateX(0); opacity: 1; }
+    }
+    /* Responsive Tweaks */
+    @media (max-width: 480px) {
+      h1 { font-size: 1.8em; }
+      button { font-size: 0.9em; }
+      #scoreboard { font-size: 1.1em; }
     }
   </style>
 </head>
 <body>
-  <!-- Join Screen: Player enters their name -->
-  <div id="join-screen">
-    <h1>Multiplayer Color Guessing Game</h1>
-    <input type="text" id="player-name" placeholder="Enter your name" />
-    <br />
-    <button id="join-btn">Join Game</button>
-    <div id="join-message"></div>
-  </div>
-
-  <!-- Game Screen: Displays after joining -->
-  <div id="game-screen" style="display:none">
-    <div id="scoreboard"></div>
-    <div id="game-message"></div>
-    <!-- Selection Phase -->
-    <div id="selection-phase" style="display:none">
-      <h2 id="selector-prompt"></h2>
-      <div class="colors" id="selector-colors"></div>
+  <!-- Congratulations and Failure Elements -->
+  <div id="congrats"></div>
+  <div id="fail"></div>
+  
+  <div id="game-container">
+    <!-- Join Screen -->
+    <div id="join-screen">
+      <h1>Retro Extreme Color Game</h1>
+      <input type="text" id="player-name" class="input-field" placeholder="Enter your name" />
+      <input type="text" id="game-code" class="input-field" placeholder="Enter 6-digit game code" maxlength="6" />
+      <button id="join-btn">Join Game</button>
+      <div id="join-message" class="status"></div>
+      <div id="seats-left" class="status">Seats left: 2</div>
+      <div id="table-info" class="status"></div>
     </div>
-    <!-- Guessing Phase -->
-    <div id="guessing-phase" style="display:none">
-      <h2 id="guesser-prompt"></h2>
-      <div id="timer">Time left: <span id="time-left">10</span> sec</div>
-      <div class="colors" id="guesser-colors"></div>
+    
+    <!-- Game Screen -->
+    <div id="game-screen" style="display:none">
+      <div id="scoreboard"></div>
+      <div id="game-message" class="status"></div>
+      <div id="timer" class="status">Time left: <span id="time-left">10</span> sec</div>
+      <div id="attempts" class="status" style="display:none;">Attempts: 0/3</div>
+      
+      <!-- Selection Phase -->
+      <div id="selection-phase" style="display:none">
+        <h2 id="selector-prompt">Select a color for your opponent:</h2>
+        <div class="color-buttons" id="selector-colors"></div>
+      </div>
+      <!-- Guessing Phase -->
+      <div id="guessing-phase" style="display:none">
+        <h2 id="guesser-prompt">Guess the color!</h2>
+        <div class="color-buttons" id="guesser-colors"></div>
+      </div>
     </div>
-    <div id="celebration">🎉</div>
   </div>
-
-  <!-- Firebase libraries -->
+  
+  <!-- Firebase compat libraries -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-
-
+  
   <script>
     /***** Firebase Setup *****/
-    // Replace the following configuration with your own Firebase project details.
-  const firebaseConfig = {
-  apiKey: "AIzaSyCZaglnHwWTZpl_OeDBzrGx4wIzLqMt094",
-  authDomain: "ncredible-4119b.firebaseapp.com",
-  databaseURL: "https://incredible-4119b-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "incredible-4119b",
-  storageBucket: "incredible-4119b.firebasestorage.app",
-  messagingSenderId: "148246737925",
-  appId: "1:148246737925:web:debd1520e63d2cb01c986c"
-};
-
+    const firebaseConfig = {
+      apiKey: "AIzaSyCZaglnHwWTZpl_OeDBzrGx4wIzLqMt094",
+      authDomain: "ncredible-4119b.firebaseapp.com",
+      databaseURL: "https://incredible-4119b-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "incredible-4119b",
+      storageBucket: "incredible-4119b.firebasestorage.app",
+      messagingSenderId: "148246737925",
+      appId: "1:148246737925:web:debd1520e63d2cb01c986c"
+    };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-    const gameRoom = "defaultRoom"; // For simplicity, using a default room
-
+    
     /***** Global Variables *****/
     const colors = ["Blue", "White", "Black", "Orange", "Pink", "Green"];
+    const tableNames = ["Office Hub", "Retro HQ", "Extreme Base", "Neon Nexus", "Retro Rally"];
     let playerName = "";
     let playerId = "";
     let gameState = null;
-    let timerInterval;
-
+    let selectionTimerInterval = null;
+    let guessingTimerInterval = null;
+    let gameRoomPath = ""; // determined by the 6-digit code
+    
     /***** DOM Elements *****/
     const joinScreen = document.getElementById("join-screen");
     const gameScreen = document.getElementById("game-screen");
     const joinBtn = document.getElementById("join-btn");
     const playerNameInput = document.getElementById("player-name");
+    const gameCodeInput = document.getElementById("game-code");
     const joinMessage = document.getElementById("join-message");
+    const seatsLeftDiv = document.getElementById("seats-left");
+    const tableInfoDiv = document.getElementById("table-info");
     const scoreboardDiv = document.getElementById("scoreboard");
     const gameMessageDiv = document.getElementById("game-message");
+    const timerSpan = document.getElementById("time-left");
+    const attemptsDiv = document.getElementById("attempts");
     const selectionPhaseDiv = document.getElementById("selection-phase");
     const guessingPhaseDiv = document.getElementById("guessing-phase");
-    const selectorPrompt = document.getElementById("selector-prompt");
-    const guesserPrompt = document.getElementById("guesser-prompt");
     const selectorColorsDiv = document.getElementById("selector-colors");
     const guesserColorsDiv = document.getElementById("guesser-colors");
-    const timerSpan = document.getElementById("time-left");
-    const celebrationDiv = document.getElementById("celebration");
-
+    const selectorPrompt = document.getElementById("selector-prompt");
+    const guesserPrompt = document.getElementById("guesser-prompt");
+    const congratsDiv = document.getElementById("congrats");
+    const failDiv = document.getElementById("fail");
+    
+    /***** Real-Time Listener for Room Info *****/
+    function listenForRoomPlayers() {
+      database.ref(gameRoomPath + "/players").on("value", snapshot => {
+        const players = snapshot.val() || {};
+        const count = Object.keys(players).length;
+        const seatsLeft = Math.max(0, 2 - count);
+        seatsLeftDiv.textContent = "Seats left: " + seatsLeft;
+        database.ref(gameRoomPath + "/gameState/tableName").once("value", snap => {
+          const tableName = snap.val();
+          if (tableName) {
+            tableInfoDiv.textContent = "You are playing at " + tableName;
+          }
+        });
+        if (count >= 2 && !playerId) {
+          joinMessage.textContent = "Game is full. Please try again later.";
+        }
+      });
+    }
+    
     /***** Join Game *****/
     joinBtn.addEventListener("click", joinGame);
-
     function joinGame() {
       playerName = playerNameInput.value.trim();
+      const gameCode = gameCodeInput.value.trim();
       if (!playerName) {
         alert("Please enter your name.");
         return;
       }
-      // Create a random player ID
-      playerId = "player_" + Math.floor(Math.random() * 10000);
-      // Save player data to the game room
-      database.ref(gameRoom + "/players/" + playerId).set({
-        name: playerName,
-        score: 0
+      if (!/^\d{6}$/.test(gameCode)) {
+        alert("Please enter a valid 6-digit game code.");
+        return;
+      }
+      gameRoomPath = "gameRooms/" + gameCode;
+      database.ref(gameRoomPath + "/players").once("value", snapshot => {
+        const players = snapshot.val() || {};
+        if (Object.keys(players).length >= 2) {
+          joinMessage.textContent = "Game is full. Please try again later.";
+          return;
+        }
+        playerId = "player_" + Math.floor(Math.random() * 10000);
+        database.ref(gameRoomPath + "/players/" + playerId).set({
+          name: playerName,
+          score: 0,
+          status: "online"
+        });
+        database.ref(gameRoomPath + "/players/" + playerId).onDisconnect().remove();
+        // Remove join screen so game code is no longer visible.
+        joinScreen.style.display = "none";
+        gameScreen.style.display = "block";
+        listenForRoomPlayers();
+        initGameState();
+        listenForGameState();
       });
-      joinScreen.style.display = "none";
-      gameScreen.style.display = "block";
-      listenForGameState();
-      initGameState();
     }
-
+    
     /***** Initialize Game State *****/
     function initGameState() {
-      // Check if both players have joined
-      database.ref(gameRoom + "/players").once("value", snapshot => {
+      database.ref(gameRoomPath + "/players").once("value", snapshot => {
         const players = snapshot.val();
         if (players && Object.keys(players).length === 2) {
-          // Initialize game state if it doesn't exist yet
-          database.ref(gameRoom + "/gameState").once("value", snap => {
+          database.ref(gameRoomPath + "/gameState").once("value", snap => {
             if (!snap.exists()) {
               const playerKeys = Object.keys(players);
-              // Randomly choose a selector
               const currentSelector = playerKeys[Math.floor(Math.random() * playerKeys.length)];
-              database.ref(gameRoom + "/gameState").set({
+              const tableName = tableNames[Math.floor(Math.random() * tableNames.length)];
+              database.ref(gameRoomPath + "/gameState").set({
                 currentSelector: currentSelector,
-                phase: "selection", // "selection" or "guessing"
+                phase: "selection",
                 secretColor: "",
                 timer: 10,
                 message: "",
                 scores: {
                   [playerKeys[0]]: 0,
                   [playerKeys[1]]: 0
-                }
+                },
+                selectorActive: false,
+                attempts: 0,
+                tableName: tableName
               });
             }
           });
         } else {
-          joinMessage.textContent = "Waiting for another player to join...";
+          gameMessageDiv.textContent = "Waiting for another player to join...";
         }
       });
     }
-
+    
     /***** Listen for Game State Changes *****/
     function listenForGameState() {
-      database.ref(gameRoom + "/gameState").on("value", snapshot => {
+      database.ref(gameRoomPath + "/gameState").on("value", snapshot => {
         gameState = snapshot.val();
         if (gameState) {
           updateUI();
         }
       });
     }
-
+    
     /***** Update UI Based on Game State *****/
     function updateUI() {
-      // Update scoreboard
-      database.ref(gameRoom + "/players").once("value", snapshot => {
-        const players = snapshot.val();
-        if (players) {
-          let scoreHtml = "";
-          for (let pid in players) {
-            const score = gameState.scores ? gameState.scores[pid] : 0;
-            scoreHtml += `<div>${players[pid].name}: ${score}</div>`;
-          }
-          scoreboardDiv.innerHTML = scoreHtml;
+      database.ref(gameRoomPath + "/players").once("value", snapshot => {
+        const players = snapshot.val() || {};
+        let scoreHtml = "";
+        for (let pid in players) {
+          scoreHtml += `<div>${players[pid].name}: ${gameState.scores[pid] || 0}</div>`;
         }
+        scoreboardDiv.innerHTML = scoreHtml;
       });
-
-      // Determine if you are the selector or the guesser
+      
       const isSelector = (playerId === gameState.currentSelector);
-
+      clearTimers();
+      
       if (gameState.phase === "selection") {
+        attemptsDiv.style.display = "none";
         selectionPhaseDiv.style.display = isSelector ? "block" : "none";
         guessingPhaseDiv.style.display = "none";
-        gameMessageDiv.textContent = isSelector 
-          ? "It’s your turn to select a color." 
-          : "Waiting for the selector to choose a color...";
         if (isSelector) {
-          selectorPrompt.textContent = "Select a color for your opponent to guess:";
+          selectorPrompt.textContent = "Select a color for your opponent:";
+          gameMessageDiv.textContent = "You have 10 seconds to choose a color.";
+          database.ref(gameRoomPath + "/gameState").update({ selectorActive: true });
           renderColorButtons(selectorColorsDiv, (color) => {
-            // Update the secret color and change phase to guessing
-            database.ref(gameRoom + "/gameState").update({
+            // Directly move to guessing phase without tiger animation.
+            database.ref(gameRoomPath + "/gameState").update({
               secretColor: color,
               phase: "guessing",
               timer: 10,
-              message: ""
+              message: "",
+              attempts: 0
             });
-            startTimer();
+            startGuessingTimer();
           });
+          startSelectionTimer();
+        } else {
+          gameMessageDiv.textContent = "Waiting for " + getPlayerName(gameState.currentSelector) + " to select a color...";
         }
       } else if (gameState.phase === "guessing") {
         selectionPhaseDiv.style.display = "none";
         guessingPhaseDiv.style.display = isSelector ? "none" : "block";
+        attemptsDiv.style.display = isSelector ? "none" : "block";
         if (isSelector) {
-          gameMessageDiv.textContent = "Waiting for your opponent to guess the color...";
+          gameMessageDiv.textContent = "Waiting for your opponent to guess...";
         } else {
           guesserPrompt.textContent = "Guess the color!";
           gameMessageDiv.textContent = "";
           renderColorButtons(guesserColorsDiv, (color) => {
             if (color === gameState.secretColor) {
-              // Correct guess: update score and swap roles
-              database.ref(gameRoom + "/gameState").once("value", snap => {
+              database.ref(gameRoomPath + "/gameState").once("value", snap => {
                 const currentState = snap.val();
                 const newScore = (currentState.scores[playerId] || 0) + 1;
-                database.ref(gameRoom + "/gameState/scores/" + playerId).set(newScore);
-                // Celebrate and swap roles after a short delay
+                database.ref(gameRoomPath + "/gameState/scores/" + playerId).set(newScore);
                 celebrate();
                 setTimeout(swapRoles, 3000);
               });
             } else {
-              gameMessageDiv.textContent = "Wrong guess! The selector gets to choose again.";
-              setTimeout(() => {
-                database.ref(gameRoom + "/gameState").update({
-                  phase: "selection",
-                  secretColor: "",
-                  timer: 10,
-                  message: ""
+              let newAttempts = (gameState.attempts || 0) + 1;
+              if (newAttempts < 3) {
+                database.ref(gameRoomPath + "/gameState").update({ attempts: newAttempts, timer: 10 });
+                gameMessageDiv.style.color = "#ff3333";
+                gameMessageDiv.textContent = "Wrong guess! Attempts: " + newAttempts + " / 3";
+              } else {
+                database.ref(gameRoomPath + "/gameState/scores/" + gameState.currentSelector).once("value", snap => {
+                  let currentScore = snap.val() || 0;
+                  database.ref(gameRoomPath + "/gameState/scores/" + gameState.currentSelector).set(currentScore + 1);
                 });
-              }, 2000);
+                gameMessageDiv.style.color = "#ff3333";
+                gameMessageDiv.textContent = "No correct guess in 3 attempts! Point to " + getPlayerName(gameState.currentSelector) + ".";
+                failAnimation();
+                setTimeout(() => {
+                  database.ref(gameRoomPath + "/gameState").update({
+                    phase: "selection",
+                    secretColor: "",
+                    timer: 10,
+                    message: "",
+                    attempts: 0
+                  });
+                }, 3000);
+              }
             }
           });
+          startGuessingTimer();
         }
+        attemptsDiv.textContent = "Attempts: " + (gameState.attempts || 0) + " / 3";
       }
-      // Update timer display
       timerSpan.textContent = gameState.timer;
     }
-
-    /***** Render Color Buttons *****/
+    
+    /***** Helper: Get Player Name by ID *****/
+    function getPlayerName(pid) {
+      let name = "";
+      database.ref(gameRoomPath + "/players/" + pid).once("value", snap => {
+        const data = snap.val();
+        if(data) name = data.name;
+      });
+      return name || pid;
+    }
+    
+    /***** Render Color Buttons (no text) *****/
     function renderColorButtons(container, callback) {
       container.innerHTML = "";
       colors.forEach(color => {
         const btn = document.createElement("button");
-        btn.textContent = color;
         btn.className = "color-btn";
         btn.style.backgroundColor = color.toLowerCase();
         btn.addEventListener("click", () => callback(color));
         container.appendChild(btn);
       });
     }
-
-    /***** Timer Functionality *****/
-    function startTimer() {
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
+    
+    /***** Timer Functions *****/
+    function startSelectionTimer() {
+      clearInterval(selectionTimerInterval);
+      selectionTimerInterval = setInterval(() => {
         let currentTimer = gameState.timer;
         if (currentTimer > 0) {
           currentTimer--;
-          database.ref(gameRoom + "/gameState").update({ timer: currentTimer });
+          database.ref(gameRoomPath + "/gameState").update({ timer: currentTimer });
         } else {
-          clearInterval(timerInterval);
-          // Timer expired: reset to selection phase
-          database.ref(gameRoom + "/gameState").update({
-            message: "Time's up! Wrong guess.",
+          clearInterval(selectionTimerInterval);
+          database.ref(gameRoomPath + "/gameState").update({
+            message: "Time's up! No color selected.",
             phase: "selection",
             secretColor: "",
-            timer: 10
+            timer: 10,
+            selectorActive: false
           });
+          swapRoles();
         }
       }, 1000);
     }
-
-    /***** Swap Roles Between Players *****/
+    function startGuessingTimer() {
+      clearInterval(guessingTimerInterval);
+      guessingTimerInterval = setInterval(() => {
+        let currentTimer = gameState.timer;
+        if (currentTimer > 0) {
+          currentTimer--;
+          database.ref(gameRoomPath + "/gameState").update({ timer: currentTimer });
+        } else {
+          clearInterval(guessingTimerInterval);
+          database.ref(gameRoomPath + "/gameState").update({
+            message: "Time's up! No guess made.",
+            phase: "selection",
+            secretColor: "",
+            timer: 10,
+            attempts: 0
+          });
+          swapRoles();
+        }
+      }, 1000);
+    }
+    function clearTimers() {
+      clearInterval(selectionTimerInterval);
+      clearInterval(guessingTimerInterval);
+    }
+    
+    /***** Swap Roles *****/
     function swapRoles() {
-      database.ref(gameRoom + "/players").once("value", snapshot => {
+      database.ref(gameRoomPath + "/players").once("value", snapshot => {
         const players = snapshot.val();
-        const pKeys = Object.keys(players);
-        const newSelector = (gameState.currentSelector === pKeys[0]) ? pKeys[1] : pKeys[0];
-        database.ref(gameRoom + "/gameState").update({
-          currentSelector: newSelector,
-          phase: "selection",
-          secretColor: "",
-          timer: 10,
-          message: ""
-        });
+        if (players) {
+          const pKeys = Object.keys(players);
+          let newSelector = "";
+          if (pKeys.length === 2) {
+            newSelector = (gameState.currentSelector === pKeys[0]) ? pKeys[1] : pKeys[0];
+          }
+          database.ref(gameRoomPath + "/gameState").update({
+            currentSelector: newSelector,
+            phase: "selection",
+            secretColor: "",
+            timer: 10,
+            message: "",
+            selectorActive: false,
+            attempts: 0
+          });
+        }
       });
     }
-
-    /***** Celebration Animation *****/
+    
+    /***** Win Animation *****/
     function celebrate() {
-      celebrationDiv.style.display = "block";
+      congratsDiv.innerText = "CONGRATULATIONS!";
+      congratsDiv.style.display = "block";
+      congratsDiv.style.animation = "congratsPop 3s ease-out forwards";
+      gameMessageDiv.style.fontSize = "2em";
+      gameMessageDiv.style.color = "#00ff00";
+      gameMessageDiv.textContent = "Great job, " + playerName + "!";
       setTimeout(() => {
-        celebrationDiv.style.display = "none";
+        congratsDiv.style.display = "none";
+        gameMessageDiv.style.fontSize = "1.2em";
+        gameMessageDiv.style.color = "#fff";
+      }, 3000);
+    }
+    
+    /***** Failure Animation *****/
+    function failAnimation() {
+      failDiv.innerText = "FAIL!";
+      failDiv.style.display = "block";
+      failDiv.style.animation = "shakeFail 2s ease-out forwards";
+      gameMessageDiv.style.fontSize = "2em";
+      gameMessageDiv.style.color = "#ff3333";
+      gameMessageDiv.textContent = "Better luck next time!";
+      setTimeout(() => {
+        failDiv.style.display = "none";
+        gameMessageDiv.style.fontSize = "1.2em";
+        gameMessageDiv.style.color = "#fff";
       }, 2000);
     }
   </script>
