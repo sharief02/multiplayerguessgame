@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multiplayer Color Guessing Game</title>
+  <style>
+    /* Basic styling for join and game screens */
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+    #join-screen, #game-screen {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 15px;
+      text-align: center;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+    input[type="text"] {
+      width: 80%;
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #ff6f61;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: #fff;
+      font-weight: bold;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #ff4c3b;
+    }
+    #scoreboard {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+    .colors {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    .color-btn {
+      width: 80px;
+      height: 80px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      font-weight: bold;
+      color: #333;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s ease;
+    }
+    .color-btn:hover {
+      transform: scale(1.1);
+    }
+    #timer {
+      margin: 10px 0;
+      font-size: 1.2em;
+    }
+    #celebration {
+      font-size: 2em;
+      margin: 20px 0;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Join Screen: Player enters their name -->
+  <div id="join-screen">
+    <h1>Multiplayer Color Guessing Game</h1>
+    <input type="text" id="player-name" placeholder="Enter your name" />
+    <br />
+    <button id="join-btn">Join Game</button>
+    <div id="join-message"></div>
+  </div>
+
+  <!-- Game Screen: Displays after joining -->
+  <div id="game-screen" style="display:none">
+    <div id="scoreboard"></div>
+    <div id="game-message"></div>
+    <!-- Selection Phase -->
+    <div id="selection-phase" style="display:none">
+      <h2 id="selector-prompt"></h2>
+      <div class="colors" id="selector-colors"></div>
+    </div>
+    <!-- Guessing Phase -->
+    <div id="guessing-phase" style="display:none">
+      <h2 id="guesser-prompt"></h2>
+      <div id="timer">Time left: <span id="time-left">10</span> sec</div>
+      <div class="colors" id="guesser-colors"></div>
+    </div>
+    <div id="celebration">🎉</div>
+  </div>
+
+  <!-- Firebase libraries -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+
+  <script>
+    /***** Firebase Setup *****/
+    // Replace the following configuration with your own Firebase project details.
+  const firebaseConfig = {
+  apiKey: "AIzaSyCZaglnHwWTZpl_OeDBzrGx4wIzLqMt094",
+  authDomain: "ncredible-4119b.firebaseapp.com",
+  databaseURL: "https://incredible-4119b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "incredible-4119b",
+  storageBucket: "incredible-4119b.firebasestorage.app",
+  messagingSenderId: "148246737925",
+  appId: "1:148246737925:web:debd1520e63d2cb01c986c"
+};
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const gameRoom = "defaultRoom"; // For simplicity, using a default room
+
+    /***** Global Variables *****/
+    const colors = ["Blue", "White", "Black", "Orange", "Pink", "Green"];
+    let playerName = "";
+    let playerId = "";
+    let gameState = null;
+    let timerInterval;
+
+    /***** DOM Elements *****/
+    const joinScreen = document.getElementById("join-screen");
+    const gameScreen = document.getElementById("game-screen");
+    const joinBtn = document.getElementById("join-btn");
+    const playerNameInput = document.getElementById("player-name");
+    const joinMessage = document.getElementById("join-message");
+    const scoreboardDiv = document.getElementById("scoreboard");
+    const gameMessageDiv = document.getElementById("game-message");
+    const selectionPhaseDiv = document.getElementById("selection-phase");
+    const guessingPhaseDiv = document.getElementById("guessing-phase");
+    const selectorPrompt = document.getElementById("selector-prompt");
+    const guesserPrompt = document.getElementById("guesser-prompt");
+    const selectorColorsDiv = document.getElementById("selector-colors");
+    const guesserColorsDiv = document.getElementById("guesser-colors");
+    const timerSpan = document.getElementById("time-left");
+    const celebrationDiv = document.getElementById("celebration");
+
+    /***** Join Game *****/
+    joinBtn.addEventListener("click", joinGame);
+
+    function joinGame() {
+      playerName = playerNameInput.value.trim();
+      if (!playerName) {
+        alert("Please enter your name.");
+        return;
+      }
+      // Create a random player ID
+      playerId = "player_" + Math.floor(Math.random() * 10000);
+      // Save player data to the game room
+      database.ref(gameRoom + "/players/" + playerId).set({
+        name: playerName,
+        score: 0
+      });
+      joinScreen.style.display = "none";
+      gameScreen.style.display = "block";
+      listenForGameState();
+      initGameState();
+    }
+
+    /***** Initialize Game State *****/
+    function initGameState() {
+      // Check if both players have joined
+      database.ref(gameRoom + "/players").once("value", snapshot => {
+        const players = snapshot.val();
+        if (players && Object.keys(players).length === 2) {
+          // Initialize game state if it doesn't exist yet
+          database.ref(gameRoom + "/gameState").once("value", snap => {
+            if (!snap.exists()) {
+              const playerKeys = Object.keys(players);
+              // Randomly choose a selector
+              const currentSelector = playerKeys[Math.floor(Math.random() * playerKeys.length)];
+              database.ref(gameRoom + "/gameState").set({
+                currentSelector: currentSelector,
+                phase: "selection", // "selection" or "guessing"
+                secretColor: "",
+                timer: 10,
+                message: "",
+                scores: {
+                  [playerKeys[0]]: 0,
+                  [playerKeys[1]]: 0
+                }
+              });
+            }
+          });
+        } else {
+          joinMessage.textContent = "Waiting for another player to join...";
+        }
+      });
+    }
+
+    /***** Listen for Game State Changes *****/
+    function listenForGameState() {
+      database.ref(gameRoom + "/gameState").on("value", snapshot => {
+        gameState = snapshot.val();
+        if (gameState) {
+          updateUI();
+        }
+      });
+    }
+
+    /***** Update UI Based on Game State *****/
+    function updateUI() {
+      // Update scoreboard
+      database.ref(gameRoom + "/players").once("value", snapshot => {
+        const players = snapshot.val();
+        if (players) {
+          let scoreHtml = "";
+          for (let pid in players) {
+            const score = gameState.scores ? gameState.scores[pid] : 0;
+            scoreHtml += `<div>${players[pid].name}: ${score}</div>`;
+          }
+          scoreboardDiv.innerHTML = scoreHtml;
+        }
+      });
+
+      // Determine if you are the selector or the guesser
+      const isSelector = (playerId === gameState.currentSelector);
+
+      if (gameState.phase === "selection") {
+        selectionPhaseDiv.style.display = isSelector ? "block" : "none";
+        guessingPhaseDiv.style.display = "none";
+        gameMessageDiv.textContent = isSelector 
+          ? "It’s your turn to select a color." 
+          : "Waiting for the selector to choose a color...";
+        if (isSelector) {
+          selectorPrompt.textContent = "Select a color for your opponent to guess:";
+          renderColorButtons(selectorColorsDiv, (color) => {
+            // Update the secret color and change phase to guessing
+            database.ref(gameRoom + "/gameState").update({
+              secretColor: color,
+              phase: "guessing",
+              timer: 10,
+              message: ""
+            });
+            startTimer();
+          });
+        }
+      } else if (gameState.phase === "guessing") {
+        selectionPhaseDiv.style.display = "none";
+        guessingPhaseDiv.style.display = isSelector ? "none" : "block";
+        if (isSelector) {
+          gameMessageDiv.textContent = "Waiting for your opponent to guess the color...";
+        } else {
+          guesserPrompt.textContent = "Guess the color!";
+          gameMessageDiv.textContent = "";
+          renderColorButtons(guesserColorsDiv, (color) => {
+            if (color === gameState.secretColor) {
+              // Correct guess: update score and swap roles
+              database.ref(gameRoom + "/gameState").once("value", snap => {
+                const currentState = snap.val();
+                const newScore = (currentState.scores[playerId] || 0) + 1;
+                database.ref(gameRoom + "/gameState/scores/" + playerId).set(newScore);
+                // Celebrate and swap roles after a short delay
+                celebrate();
+                setTimeout(swapRoles, 3000);
+              });
+            } else {
+              gameMessageDiv.textContent = "Wrong guess! The selector gets to choose again.";
+              setTimeout(() => {
+                database.ref(gameRoom + "/gameState").update({
+                  phase: "selection",
+                  secretColor: "",
+                  timer: 10,
+                  message: ""
+                });
+              }, 2000);
+            }
+          });
+        }
+      }
+      // Update timer display
+      timerSpan.textContent = gameState.timer;
+    }
+
+    /***** Render Color Buttons *****/
+    function renderColorButtons(container, callback) {
+      container.innerHTML = "";
+      colors.forEach(color => {
+        const btn = document.createElement("button");
+        btn.textContent = color;
+        btn.className = "color-btn";
+        btn.style.backgroundColor = color.toLowerCase();
+        btn.addEventListener("click", () => callback(color));
+        container.appendChild(btn);
+      });
+    }
+
+    /***** Timer Functionality *****/
+    function startTimer() {
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        let currentTimer = gameState.timer;
+        if (currentTimer > 0) {
+          currentTimer--;
+          database.ref(gameRoom + "/gameState").update({ timer: currentTimer });
+        } else {
+          clearInterval(timerInterval);
+          // Timer expired: reset to selection phase
+          database.ref(gameRoom + "/gameState").update({
+            message: "Time's up! Wrong guess.",
+            phase: "selection",
+            secretColor: "",
+            timer: 10
+          });
+        }
+      }, 1000);
+    }
+
+    /***** Swap Roles Between Players *****/
+    function swapRoles() {
+      database.ref(gameRoom + "/players").once("value", snapshot => {
+        const players = snapshot.val();
+        const pKeys = Object.keys(players);
+        const newSelector = (gameState.currentSelector === pKeys[0]) ? pKeys[1] : pKeys[0];
+        database.ref(gameRoom + "/gameState").update({
+          currentSelector: newSelector,
+          phase: "selection",
+          secretColor: "",
+          timer: 10,
+          message: ""
+        });
+      });
+    }
+
+    /***** Celebration Animation *****/
+    function celebrate() {
+      celebrationDiv.style.display = "block";
+      setTimeout(() => {
+        celebrationDiv.style.display = "none";
+      }, 2000);
+    }
+  </script>
+</body>
+</html>
